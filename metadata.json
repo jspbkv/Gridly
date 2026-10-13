@@ -1,0 +1,6 @@
+{
+  "name": "Block Blast Android",
+  "description": "Бесконечная игра-головоломка Block Blast для Android с адаптацией под вертикальный экран, полноэкранным режимом, темами оформления и сочными звуками.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

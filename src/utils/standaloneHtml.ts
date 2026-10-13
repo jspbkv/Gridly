@@ -1,0 +1,423 @@
+// Generates a 100% self-contained single HTML file with cozy tactile ceramic styling, audio synth, and haptics inlined.
+
+export function generateStandaloneHtml(): string {
+  return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Gridly (Android)</title>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#f5f2eb">
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+      touch-action: none; user-select: none; -webkit-user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f2eb;
+      background: radial-gradient(ellipse at 50% 0%, #faf8f3 0%, #ede8de 100%);
+      color: #2d2822;
+    }
+    #game-container {
+      width: 100%; height: 100%; display: flex; flex-direction: column;
+      justify-content: space-between; align-items: center; padding: 12px 16px;
+      max-width: 420px; margin: 0 auto; position: relative;
+    }
+    .header {
+      width: 100%; display: flex; flex-direction: column; gap: 10px;
+    }
+    .top-bar {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .brand {
+      font-weight: 900; font-size: 13px; letter-spacing: 2px; color: #d97354; text-transform: uppercase;
+    }
+    .score-cards {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .score-card {
+      background: #faf8f3; border: 1px solid #e4ddd0; border-radius: 20px;
+      padding: 10px 14px; display: flex; flex-direction: column; align-items: center;
+      box-shadow: 0 4px 14px rgba(120, 100, 80, 0.08);
+    }
+    .score-label {
+      font-size: 10px; font-weight: 800; color: #7d7467; text-transform: uppercase; letter-spacing: 1px;
+    }
+    .score-val {
+      font-size: 28px; font-weight: 900; color: #2d2822; line-height: 1.1; font-variant-numeric: tabular-nums;
+    }
+    .best-val { color: #d97706; }
+    #board-wrap {
+      width: 100%; aspect-ratio: 1; max-width: 380px; position: relative;
+      background: #e5dfd3; border: 2px solid #d6cfc0; border-radius: 26px;
+      padding: 9px; display: grid; grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr); gap: 6px;
+      box-shadow: 0 16px 36px -10px rgba(120, 100, 80, 0.14), inset 0 2px 4px rgba(255, 255, 255, 0.7);
+      transition: transform 0.2s ease-out;
+    }
+    .board-punch {
+      transform: scale(1.018);
+    }
+    .cell {
+      background: #d8d1c2; border: 1px solid #cbbfad; border-radius: 7px;
+      position: relative; overflow: hidden;
+      box-shadow: inset 0 2px 4px rgba(90, 75, 60, 0.12);
+    }
+    .cell.filled {
+      border: none;
+      border-radius: 7px;
+      box-shadow: inset 0 1.5px 2px rgba(255,255,255,0.45), inset 0 -2px 3px rgba(0,0,0,0.22), 0 2.5px 5px rgba(0,0,0,0.15);
+      animation: dropSnap 0.22s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+    }
+    .cell.filled::after {
+      content: ''; position: absolute; top: 1.5px; left: 1.5px; right: 1.5px; height: 32%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.05) 100%);
+      border-radius: 5px 5px 6px 6px; pointer-events: none;
+    }
+    .cell.clearing {
+      animation: clearSat 0.35s cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
+    }
+    @keyframes dropSnap {
+      0% { transform: scale(0.8); opacity: 0.5; }
+      60% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes clearSat {
+      0% { transform: scale(1); opacity: 1; filter: brightness(1); }
+      30% { transform: scale(1.2); opacity: 1; filter: brightness(1.35); box-shadow: 0 0 12px rgba(255,255,255,0.7); }
+      100% { transform: scale(0.05); opacity: 0; filter: brightness(1.5); }
+    }
+    @keyframes traySpawn {
+      0% { transform: scale(0.3) translateY(10px); opacity: 0; }
+      65% { transform: scale(1.06) translateY(-2px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .cell.preview {
+      opacity: 0.55; border: 2px solid rgba(255,255,255,0.7); border-radius: 7px;
+    }
+    #tray-wrap {
+      width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+      background: #faf8f3; border: 1px solid #e4ddd0; border-radius: 24px;
+      padding: 10px; min-height: 114px; align-items: center;
+      box-shadow: 0 4px 14px rgba(120, 100, 80, 0.08);
+    }
+    .slot {
+      height: 94px; border-radius: 18px; display: flex; align-items: center;
+      justify-content: center; cursor: grab; background: rgba(0,0,0,0.025);
+      animation: traySpawn 0.35s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+    }
+    .slot.empty { opacity: 0.2; border: 1px dashed #bdaf99; animation: none; }
+    .btn {
+      background: #faf8f3; border: 1px solid #e4ddd0; color: #7d7467;
+      padding: 8px 12px; border-radius: 14px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+    .btn:active { transform: scale(0.93); }
+    #modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-box {
+      background: #faf8f3; border: 1px solid #e4ddd0; border-radius: 28px;
+      padding: 26px; width: 90%; max-width: 340px; text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div class="header">
+      <div class="top-bar">
+        <span class="brand">BLOCK BLAST</span>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn" id="btn-fullscreen">⛶</button>
+          <button class="btn" id="btn-restart">↻</button>
+        </div>
+      </div>
+      <div class="score-cards">
+        <div class="score-card">
+          <span class="score-label">СЧЁТ</span>
+          <span class="score-val" id="score">0</span>
+        </div>
+        <div class="score-card">
+          <span class="score-label">РЕКОРД</span>
+          <span class="score-val best-val" id="best">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="board-wrap"></div>
+    <div id="tray-wrap"></div>
+  </div>
+
+  <div id="modal">
+    <div class="modal-box">
+      <h2 style="margin: 0 0 6px 0; font-size: 24px; font-weight: 900;">Конец раунда</h2>
+      <p style="color: #7d7467; font-size: 12px; font-weight: 700; text-transform: uppercase;">Итоговый счёт:</p>
+      <div style="font-size: 40px; font-weight: 900; margin-bottom: 20px; color: #2d2822;" id="final-score">0</div>
+      <button class="btn" id="btn-play-again" style="width: 100%; padding: 14px; background: #d97354; color: #ffffff; font-size: 15px; font-weight: 900; border: none; border-radius: 18px;">Играть снова</button>
+    </div>
+  </div>
+
+  <script>
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const actx = AudioCtx ? new AudioCtx() : null;
+    function playBeep(freq, type, dur, vol = 0.15) {
+      if (!actx) return;
+      if (actx.state === 'suspended') actx.resume();
+      try {
+        const osc = actx.createOscillator();
+        const g = actx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, actx.currentTime);
+        g.gain.setValueAtTime(vol, actx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+        osc.connect(g);
+        g.connect(actx.destination);
+        osc.start();
+        osc.stop(actx.currentTime + dur);
+      } catch(e) {}
+    }
+
+    function playMarimbaChimes() {
+      if (!actx) return;
+      if (actx.state === 'suspended') actx.resume();
+      const scale = [523.25, 659.25, 783.99, 1046.5];
+      scale.forEach((freq, i) => {
+        const t = actx.currentTime + i * 0.05;
+        const osc = actx.createOscillator();
+        const g = actx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0.18, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+        osc.connect(g);
+        g.connect(actx.destination);
+        osc.start(t);
+        osc.stop(t + 0.36);
+      });
+    }
+
+    const COLORS = ['#e0634c', '#ea9a3e', '#5aa878', '#40999b', '#4a80bf', '#8972b3', '#d46a84', '#d98236'];
+    const SHAPES = [
+      { m: [[1]], r: 1, c: 1 },
+      { m: [[1,1]], r: 1, c: 2 },
+      { m: [[1],[1]], r: 2, c: 1 },
+      { m: [[1,1,1]], r: 1, c: 3 },
+      { m: [[1],[1],[1]], r: 3, c: 1 },
+      { m: [[1,1,1,1]], r: 1, c: 4 },
+      { m: [[1],[1],[1],[1]], r: 4, c: 1 },
+      { m: [[1,1],[1,1]], r: 2, c: 2 },
+      { m: [[1,1,1],[1,1,1],[1,1,1]], r: 3, c: 3 },
+      { m: [[1,1],[1,0]], r: 2, c: 2 },
+      { m: [[1,1],[0,1]], r: 2, c: 2 },
+      { m: [[1,0],[1,1]], r: 2, c: 2 },
+      { m: [[0,1],[1,1]], r: 2, c: 2 },
+      { m: [[1,0],[1,0],[1,1]], r: 3, c: 2 },
+      { m: [[0,1],[0,1],[1,1]], r: 3, c: 2 },
+      { m: [[1,1,1],[0,1,0]], r: 2, c: 3 },
+      { m: [[0,1,0],[1,1,1]], r: 2, c: 3 },
+    ];
+
+    let grid = Array.from({length: 8}, () => Array(8).fill(null));
+    let tray = [null, null, null];
+    let score = 0;
+    let best = parseInt(localStorage.getItem('bb_offline_best') || '0', 10);
+    document.getElementById('best').innerText = best;
+
+    const boardWrap = document.getElementById('board-wrap');
+    const trayWrap = document.getElementById('tray-wrap');
+
+    function renderBoard() {
+      boardWrap.innerHTML = '';
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const div = document.createElement('div');
+          div.className = 'cell' + (grid[r][c] ? ' filled' : '');
+          if (grid[r][c]) div.style.backgroundColor = grid[r][c];
+          div.dataset.r = r;
+          div.dataset.c = c;
+          boardWrap.appendChild(div);
+        }
+      }
+    }
+
+    function spawnTray() {
+      for (let i = 0; i < 3; i++) {
+        const shp = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        tray[i] = { ...shp, color };
+      }
+      renderTray();
+    }
+
+    function renderTray() {
+      trayWrap.innerHTML = '';
+      tray.forEach((piece, idx) => {
+        const slot = document.createElement('div');
+        slot.className = 'slot' + (!piece ? ' empty' : '');
+        slot.style.animationDelay = (idx * 80) + 'ms';
+        if (piece) {
+          const csize = 18;
+          const mini = document.createElement('div');
+          mini.style.display = 'grid';
+          mini.style.gridTemplateRows = 'repeat(' + piece.r + ', ' + csize + 'px)';
+          mini.style.gridTemplateColumns = 'repeat(' + piece.c + ', ' + csize + 'px)';
+          mini.style.gap = '3px';
+          for (let r = 0; r < piece.r; r++) {
+            for (let c = 0; c < piece.c; c++) {
+              const b = document.createElement('div');
+              if (piece.m[r][c]) {
+                b.style.backgroundColor = piece.color;
+                b.style.borderRadius = '4px';
+                b.style.boxShadow = 'inset 0 1px 2px rgba(255,255,255,0.45), 0 2px 3px rgba(0,0,0,0.15)';
+              }
+              mini.appendChild(b);
+            }
+          }
+          slot.appendChild(mini);
+          slot.onpointerdown = (e) => startDrag(idx, piece, e);
+        }
+        trayWrap.appendChild(slot);
+      });
+    }
+
+    let dragging = null;
+    function startDrag(idx, piece, e) {
+      e.preventDefault();
+      playBeep(340, 'triangle', 0.08);
+      if (navigator.vibrate) navigator.vibrate(10);
+      dragging = { idx, piece };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    }
+
+    function onMove(e) {}
+
+    function onUp(e) {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      if (!dragging) return;
+      const rect = boardWrap.getBoundingClientRect();
+      const cellSize = rect.width / 8;
+      const touchX = e.clientX;
+      const touchY = e.clientY - 70;
+
+      if (touchX >= rect.left && touchX <= rect.right && touchY >= rect.top && touchY <= rect.bottom) {
+        const col = Math.floor((touchX - rect.left) / cellSize);
+        const row = Math.floor((touchY - rect.top) / cellSize);
+
+        if (canPlace(grid, dragging.piece, row, col)) {
+          place(dragging.piece, row, col);
+          tray[dragging.idx] = null;
+          playBeep(210, 'triangle', 0.1, 0.28);
+          if (navigator.vibrate) navigator.vibrate(20);
+          checkLines();
+          if (tray.every(p => p === null)) spawnTray();
+          checkGameOver();
+        }
+      }
+      dragging = null;
+      renderBoard();
+      renderTray();
+    }
+
+    function canPlace(g, p, sr, sc) {
+      for (let r = 0; r < p.r; r++) {
+        for (let c = 0; c < p.c; c++) {
+          if (p.m[r][c]) {
+            const br = sr + r, bc = sc + c;
+            if (br < 0 || br >= 8 || bc < 0 || bc >= 8 || g[br][bc]) return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    function place(p, sr, sc) {
+      for (let r = 0; r < p.r; r++) {
+        for (let c = 0; c < p.c; c++) {
+          if (p.m[r][c]) grid[sr + r][sc + c] = p.color;
+        }
+      }
+      addScore(10);
+    }
+
+    function checkLines() {
+      const fullR = [], fullC = [];
+      for (let r = 0; r < 8; r++) if (grid[r].every(c => c !== null)) fullR.push(r);
+      for (let c = 0; c < 8; c++) {
+        let full = true;
+        for (let r = 0; r < 8; r++) if (!grid[r][c]) { full = false; break; }
+        if (full) fullC.push(c);
+      }
+      if (fullR.length + fullC.length > 0) {
+        boardWrap.classList.add('board-punch');
+        setTimeout(() => boardWrap.classList.remove('board-punch'), 200);
+
+        fullR.forEach(r => { for (let c = 0; c < 8; c++) grid[r][c] = null; });
+        fullC.forEach(c => { for (let r = 0; r < 8; r++) grid[r][c] = null; });
+        playMarimbaChimes();
+        if (navigator.vibrate) navigator.vibrate([30, 40, 50]);
+        addScore((fullR.length + fullC.length) * 100);
+      }
+    }
+
+    function addScore(pts) {
+      score += pts;
+      document.getElementById('score').innerText = score;
+      if (score > best) {
+        best = score;
+        localStorage.setItem('bb_offline_best', best);
+        document.getElementById('best').innerText = best;
+      }
+    }
+
+    function checkGameOver() {
+      const active = tray.filter(Boolean);
+      for (const p of active) {
+        for (let r = 0; r <= 8 - p.r; r++) {
+          for (let c = 0; c <= 8 - p.c; c++) {
+            if (canPlace(grid, p, r, c)) return;
+          }
+        }
+      }
+      document.getElementById('final-score').innerText = score;
+      document.getElementById('modal').style.display = 'flex';
+      playBeep(220, 'sine', 0.4);
+    }
+
+    document.getElementById('btn-play-again').onclick = () => {
+      document.getElementById('modal').style.display = 'none';
+      grid = Array.from({length: 8}, () => Array(8).fill(null));
+      score = 0;
+      document.getElementById('score').innerText = '0';
+      renderBoard();
+      spawnTray();
+    };
+
+    document.getElementById('btn-restart').onclick = () => {
+      grid = Array.from({length: 8}, () => Array(8).fill(null));
+      score = 0;
+      document.getElementById('score').innerText = '0';
+      renderBoard();
+      spawnTray();
+    };
+
+    document.getElementById('btn-fullscreen').onclick = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+
+    renderBoard();
+    spawnTray();
+  </script>
+</body>
+</html>`;
+}
